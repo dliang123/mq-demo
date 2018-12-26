@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
  * @Date Created in 16:51 2018/11/21
  */
 @Slf4j
-@Component
+//@Component
 public class RabbitConsume {
 
 

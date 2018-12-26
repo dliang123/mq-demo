@@ -1,10 +1,8 @@
 package com.mq.rabbit;
 
+import com.mq.rabbit.transaction.TransactionMode;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Random;
 
@@ -20,6 +18,8 @@ public class Controller {
 
     @Autowired
     private RabbitService rabbitService;
+    @Autowired
+    private TransactionMode transactionMode;
 
     @PostMapping(value = "push")
     public String pushMessage() {
@@ -30,5 +30,11 @@ public class Controller {
         }
 
         return "success";
+    }
+
+    @GetMapping(value = "testTransaction")
+    public void testTransaction() {
+
+        transactionMode.testTransactionalMode();
     }
 }
