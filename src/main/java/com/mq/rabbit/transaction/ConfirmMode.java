@@ -2,8 +2,10 @@ package com.mq.rabbit.transaction;
 
 
 import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.ConfirmListener;
 import com.rabbitmq.client.MessageProperties;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
 import org.springframework.amqp.rabbit.connection.Connection;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -11,12 +13,18 @@ import org.springframework.amqp.rabbit.support.CorrelationData;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
+
 @Service
 @Slf4j
 public class ConfirmMode {
 
     @Autowired
     private RabbitTemplate rabbitTemplate;
+
+    @Autowired
+    private CachingConnectionFactory  cachingConnectionFactory;
+
 
     public void testSyncMode() {
         // 获取连接工厂
@@ -51,6 +59,15 @@ public class ConfirmMode {
     }
 
     public void testAsyncMode() {
+        ConnectionFactory connectionFactory =
+                rabbitTemplate.getConnectionFactory();
+
+        // 开启连接 - tcp连接
+        Connection connection = connectionFactory.createConnection();
+
+        // 建立信道 构造参数 true代表该信道开启 Transactional 事务模式, false 代表为非事务模式
+        Channel channel = connection.createChannel(false);
+
         // 开启confirm模式, 模拟发送一千条消息，记录总耗时
         rabbitTemplate.setReturnCallback((message, replyCode, replyText, exchange, routingKey) -> {
             String correlationId = message.getMessageProperties().getCorrelationIdString();
@@ -66,12 +83,54 @@ public class ConfirmMode {
                 System.out.println("消息id为: " + correlationData + "的消息，消息nack，失败原因是：" + cause);
             }
         });
+        try {
+            channel.confirmSelect();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        // 开启连接 - tcp连接
+        // 准备发送一万条测试消息
+        long start = System.currentTimeMillis();
+        for (int i = 0; i < 2; i++) {
+
+            rabbitTemplate.convertAndSend("test666", "test66", ("第" + (i + 1) + "条消息").getBytes(), new CorrelationData(String.valueOf(i)));
+        }
+        System.out.println("消息确认 - 异步确认，1000条消息发送共耗时: " + (System.currentTimeMillis() - start) + "ms");
+    }
+
+    public void testAsyncMode2() {
+        ConnectionFactory connectionFactory =
+                rabbitTemplate.getConnectionFactory();
+
+        // 开启连接 - tcp连接
+        Connection connection = connectionFactory.createConnection();
+
+        // 建立信道 构造参数 true代表该信道开启 Transactional 事务模式, false 代表为非事务模式
+        Channel channel = connection.createChannel(false);
+
+        channel.addConfirmListener(new ConfirmListener() {
+            @Override
+            public void handleAck(long deliveryTag, boolean multiple) throws IOException {
+                log.info("handleAck: deliveryTag -> {},multiple -> {}",deliveryTag,multiple);
+            }
+
+            @Override
+            public void handleNack(long deliveryTag, boolean multiple) throws IOException {
+                log.info("handleNack: deliveryTag -> {},multiple -> {}",deliveryTag,multiple);
+            }
+        });
 
         // 开启连接 - tcp连接
         // 准备发送一万条测试消息
         long start = System.currentTimeMillis();
-        for (int i = 0; i < 10; i++) {
-            rabbitTemplate.convertAndSend("x-hello", "test", ("第" + (i + 1) + "条消息").getBytes(), new CorrelationData(String.valueOf(i)));
+        for (int i = 0; i < 2; i++) {
+            try {
+                channel.confirmSelect();
+                channel.basicPublish("test666", "test66", true, MessageProperties.PERSISTENT_BASIC, ("第" + (i + 1) + "条消息").getBytes());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
         }
         System.out.println("消息确认 - 异步确认，1000条消息发送共耗时: " + (System.currentTimeMillis() - start) + "ms");
     }

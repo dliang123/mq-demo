@@ -1,5 +1,6 @@
 package com.mq.rabbit;
 
+import com.mq.rabbit.transaction.ConfirmMode;
 import com.mq.rabbit.transaction.TransactionMode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -20,6 +21,8 @@ public class Controller {
     private RabbitService rabbitService;
     @Autowired
     private TransactionMode transactionMode;
+    @Autowired
+    private ConfirmMode confirmMode;
 
     @PostMapping(value = "push")
     public String pushMessage() {
@@ -36,5 +39,26 @@ public class Controller {
     public void testTransaction() {
 
         transactionMode.testTransactionalMode();
+    }
+
+    // 异步确认机制
+    @GetMapping(value = "asyncTran")
+    public void asyncTran() {
+
+        confirmMode.testAsyncMode();
+    }
+
+    // 异步确认机制
+    @GetMapping(value = "asyncTran2")
+    public void asyncTran2() {
+
+        confirmMode.testAsyncMode2();
+    }
+
+    // 同步确认机制
+    @GetMapping(value = "syncTran")
+    public void syncTran() {
+
+        confirmMode.testSyncMode();
     }
 }
