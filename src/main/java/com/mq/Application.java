@@ -16,11 +16,11 @@ public class Application extends SpringBootServletInitializer {
 
     public static void main(String[] args) {
         System.out.println("ssh");
-        System.out.println("sdfsdf");
+        System.out.println("sdfsdf111");
 
 
 
-        System.out.println("sdfdsjfjls");
+        System.out.println("sdfdsjfjls22222");
         SpringApplication.run(Application.class,args);
     }
 
